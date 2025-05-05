@@ -1,0 +1,85 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id          Int         @id @default(autoincrement())
+  admins      Admin[]
+  ai_contexts AIContext[]
+  name        String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model Admin {
+  id         Int      @id @default(autoincrement())
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  tenantId   Int
+  email      String   @unique
+  password   String?
+  googleId   String?  @unique
+  resetToken String?  @unique
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model AIContext {
+  id            Int            @id @default(autoincrement())
+  tenant        Tenant         @relation(fields: [tenantId], references: [id])
+  tenantId      Int
+  conversations Conversation[]
+  embeddings    Embedding[]
+  completions   Completion[]
+  name          String
+  instructions  String?
+  temperature   Float
+  aiModel       AIModel        @default(DEEPSEEK_CHAT)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+enum AIModel {
+  DEEPSEEK_CHAT     @map("deepseek-chat")
+  DEEPSEEK_REASONER @map("deepseek-reasoner")
+}
+
+model Conversation {
+  id              Int          @id @default(autoincrement())
+  aiContext       AIContext    @relation(fields: [aiContextId], references: [id])
+  aiContextId     Int
+  requesterMsisdn String
+  completions     Completion[]
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+}
+
+model Embedding {
+  id          Int       @id @default(autoincrement())
+  aiContext   AIContext @relation(fields: [aiContextId], references: [id])
+  aiContextId Int
+  content     String
+}
+
+model Completion {
+  id             Int           @id @default(autoincrement())
+  aiContext      AIContext     @relation(fields: [aiContextId], references: [id])
+  aiContextId    Int
+  conversation   Conversation? @relation(fields: [conversationId], references: [id])
+  conversationId Int?
+  prompt         String
+  response       String
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
