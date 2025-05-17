@@ -17,18 +17,25 @@ class CompletionService {
       const { prompt, aiContextId } = body;
       const aiContext = await Prisma.aiContext.findUnique({
         where: { id: aiContextId },
+        include: {
+          embeddings: true,
+        },
       });
-      const{ temperature, instructions } = aiContext;
-
+      const { temperature, instructions, embeddings } = aiContext;
+      const embedding = embeddings[0];
+      const info = embedding.content;
+      const aiContextEmbedding = `instructions: ${instructions} \n info: ${info}`;
       const completion = await this.openai.chat.completions.create({
         messages: [
-          { role: "system", content: instructions },
+          { role: "system", content: aiContextEmbedding },
           { role: 'user', content: prompt }
         ],
         model: "deepseek-chat",
         temperature: temperature,
       });
-      return completion;
+      const completionResponse = completion.choices[0].message.content;
+      await this.saveCompletion(body, completionResponse);
+      return completionResponse;
     } catch (error) {
       console.error("Error creating completion:", error);
       throw error;
