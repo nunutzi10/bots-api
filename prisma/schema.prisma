@@ -16,6 +16,7 @@ datasource db {
 model Tenant {
   id              Int               @id @default(autoincrement())
   admins          Admin[]
+  user            User[]
   ai_contexts     AiContext[]
   apiKeys         apiKey[]
   name            String
@@ -54,7 +55,8 @@ model GoogleAuthToken {
   id           Int      @id @default(autoincrement())
   tenant       Tenant   @relation(fields: [tenantId], references: [id])
   tenantId     Int
-  userId       String    @unique
+  userId       String
+  user         User?
   accessToken  String   @db.Text
   refreshToken String?  @db.Text
   expiryDate   BigInt?
@@ -62,6 +64,20 @@ model GoogleAuthToken {
   tokenType    String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  @@unique([tenantId, userId])
+}
+
+model User {
+  id               Int              @id @default(autoincrement())
+  tenant           Tenant           @relation(fields: [tenantId], references: [id])
+  tenantId         Int
+  googleUserId     String           
+  email            String?
+  name             String?
+  googleAuthToken  GoogleAuthToken  @relation(fields: [tenantId, googleUserId], references: [tenantId, userId])
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  @@unique([tenantId, googleUserId], name: "tenantId_googleUserId")
 }
 
 model Conversation {

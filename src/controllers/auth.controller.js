@@ -5,27 +5,49 @@ const authService = new AuthService();
 
 export const createGoogleAuthToken = async (req, res) => {
   const { code } = req.query;
+  const tenantId = parseInt(req.tenantId)
 
   if (!code) {
     return res.status(400).send('Error: No se recibió el código de autorización.');
   }
-
+  console.log('Código de autorización:', code);
+  console.log('TenantId:', tenantId);
+  console.log('Tipo de tenantId:', typeof tenantId);
   try {
     const { tokens } = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
 
+    const { data: profile } = await oauth2Client.request({
+      url: 'https://www.googleapis.com/oauth2/v3/userinfo'
+    });
+
+    const authRecord = await authService.createGoogleAuthToken({
+      tokens,
+      googleId: profile.sub,
+      email: profile.email,
+      name: profile.name,
+      tenantId
+    });
+
+
     console.log('Tokens recibidos:', tokens);
 
-    const userIdForDemo = 'user_quien_inicio_el_flujo';
-    const authRecordFromService = await authService.createGoogleAuthToken(tokens, userIdForDemo);
-    const responseData = {
-      ...authRecordFromService,
-      expiryDate: authRecordFromService.expiryDate ? authRecordFromService.expiryDate.toString() : null
-    };
-    
-    res.status(201).json(responseData);
+    res.status(201).json({
+      user: {
+        id: authRecord.user.id,
+        email: authRecord.user.email,
+        name: authRecord.user.name
+      },
+      tokens: {
+        accessToken: authRecord.accessToken,
+        expiryDate: authRecord.expiryDate?.toString()
+      }
+    });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ message: "An error occurred while creating a auth.", error: err.message });
+    res.status(500).json({
+      message: "Error en autenticación con Google",
+      error: err.message
+    });
   }
 };

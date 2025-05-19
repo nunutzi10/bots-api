@@ -2,40 +2,65 @@ import { PrismaClient } from '@prisma/client';
 const Prisma = new PrismaClient();
 
 class AuthService {
-  async createGoogleAuthToken(tokens, userIdForDemo) {
+  async createGoogleAuthToken({ tokens, googleId, email, name, tenantId }) {
     try {
-      const savedGoogleAuthToken = await Prisma.googleAuthToken.upsert({
-        where: { userId: userIdForDemo },
-        update: {
-          accessToken: tokens.access_token,
-          refreshToken: tokens.refresh_token,
-          expiryDate: tokens.expiry_date ? BigInt(tokens.expiry_date) : null,
-          scope: tokens.scope,
-          tokenType: tokens.token_type,
-        },
-        create: {
-          userId: userIdForDemo,
-          accessToken: tokens.access_token,
-          refreshToken: tokens.refresh_token,
-          expiryDate: tokens.expiry_date ? BigInt(tokens.expiry_date) : null,
-          scope: tokens.scope,
-          tokenType: tokens.token_type,
-          tenant: {
-            connect: {
-              id: 1
-            }
-          }
+      return await Prisma.$transaction(async (prisma) => {
+        const tenant = await Prisma.tenant.findUnique({
+          where: { id: tenantId }
+        });
+        if (!tenant) {
+          throw new Error('Tenant no encontrado');
         }
-      });
+        const savedToken = await Prisma.googleAuthToken.upsert({
+          where: {
+            tenantId_userId: {
+              tenantId,
+              userId: googleId
+            }
+          },
+          update: {
+            accessToken: tokens.access_token,
+            refreshToken: tokens.refresh_token,
+            expiryDate: tokens.expiry_date ? BigInt(tokens.expiry_date) : null,
+            scope: tokens.scope,
+            tokenType: tokens.token_type,
+          },
+          create: {
+            userId: googleId,
+            accessToken: tokens.access_token,
+            refreshToken: tokens.refresh_token,
+            expiryDate: tokens.expiry_date ? BigInt(tokens.expiry_date) : null,
+            scope: tokens.scope,
+            tokenType: tokens.token_type,
+            tenant: { connect: { id: tenantId } }
+          }
+        });
 
-      console.log('Se creo con exito el Auth!')
-      return savedGoogleAuthToken;
-    } catch (error) {
-      console.error('Error al obtener tokens o guardarlos:', error.message);
-      if (error.response && error.response.data) {
-          console.error('Detalles del error de Google:', error.response.data);
+        const user = await Prisma.user.upsert({
+          where: {
+            tenantId_googleUserId: { 
+              tenantId: tenantId,
+              googleUserId: googleId 
+            }
+          },
+          update: {
+            email: email,
+            name: name
+          },
+          create: {
+            tenantId: tenantId,
+            googleUserId: googleId,
+            email: email,
+            name: name,
+          }
+        });
+        console.log('Se creo con exito el Auth!')
+        return { ...savedToken, user };
       }
-      res.status(500).send('Error durante la autenticación con Google.');
+      );
+    } catch (error) {
+      console.error('Error en transacción:', error);
+      throw new Error(error.message);
     }
   }
 }
