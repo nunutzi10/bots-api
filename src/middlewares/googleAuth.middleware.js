@@ -4,15 +4,31 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 export async function loadGoogleCredentials(req, res, next) {
-  const userId = req.query.userId || req.headers['x-user-id'];
+  const email = req.query.email || req.headers['x-email'];
 
-  if (!userId) {
-    return res.status(400).json({ message: 'UserID no proporcionado.' });
+  if (!email) {
+    return res.status(400).json({ message: 'Email no proporcionado.' });
   }
-  req.userId = userId;
+  req.email = email;
 
   try {
-    const tokenData = await prisma.googleAuthToken.findUnique({
+    const user = await prisma.user.findFirst({
+      where: { email: email },
+    });
+
+    console.log('Usuario: ', user)
+
+    if (!user) {
+      return res.status(401).json({
+        message: 'Usuario no encontrado.',
+        authUrl: '/api/auth/google'
+      });
+    }
+
+    const userId = user.googleUserId
+    const tenantId = user.tenantId
+
+    const tokenData = await prisma.googleAuthToken.findFirst({
       where: { userId: userId },
     });
 
@@ -51,7 +67,12 @@ export async function loadGoogleCredentials(req, res, next) {
       }
 
       await prisma.googleAuthToken.update({
-        where: { userId: userId },
+        where: {
+          tenantId_userId: {
+            tenantId,
+            userId: userId
+          }
+        },
         data: updateData,
       });
       console.log('Tokens actualizados en la BD para userId:', userId);
