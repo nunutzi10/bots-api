@@ -1,0 +1,119 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id              Int               @id @default(autoincrement())
+  admins          Admin[]
+  user            User[]
+  ai_contexts     AiContext[]
+  apiKeys         apiKey[]
+  name            String
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  GoogleAuthToken GoogleAuthToken[]
+}
+
+model Admin {
+  id         Int      @id @default(autoincrement())
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  tenantId   Int
+  email      String   @unique
+  password   String?
+  googleId   String?  @unique
+  resetToken String?  @unique
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model AiContext {
+  id            Int            @id @default(autoincrement())
+  tenant        Tenant         @relation(fields: [tenantId], references: [id])
+  tenantId      Int
+  conversations Conversation[]
+  embeddings    Embedding[]
+  completions   Completion[]
+  name          String
+  instructions  String?
+  temperature   Float
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model GoogleAuthToken {
+  id           Int      @id @default(autoincrement())
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  tenantId     Int
+  userId       String
+  user         User?
+  accessToken  String   @db.Text
+  refreshToken String?  @db.Text
+  expiryDate   BigInt?
+  scope        String?
+  tokenType    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  @@unique([tenantId, userId])
+}
+
+model User {
+  id               Int              @id @default(autoincrement())
+  tenant           Tenant           @relation(fields: [tenantId], references: [id])
+  tenantId         Int
+  googleUserId     String           
+  email            String?
+  name             String?
+  googleAuthToken  GoogleAuthToken  @relation(fields: [tenantId, googleUserId], references: [tenantId, userId])
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  @@unique([tenantId, googleUserId], name: "tenantId_googleUserId")
+}
+
+model Conversation {
+  id              Int          @id @default(autoincrement())
+  aiContext       AiContext    @relation(fields: [aiContextId], references: [id])
+  aiContextId     Int
+  requesterMsisdn String
+  completions     Completion[]
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+}
+
+model Embedding {
+  id          Int       @id @default(autoincrement())
+  aiContext   AiContext @relation(fields: [aiContextId], references: [id])
+  aiContextId Int
+  content     String
+}
+
+model Completion {
+  id             Int           @id @default(autoincrement())
+  aiContext      AiContext     @relation(fields: [aiContextId], references: [id])
+  aiContextId    Int
+  conversation   Conversation? @relation(fields: [conversationId], references: [id])
+  conversationId Int?
+  prompt         String
+  response       String
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model apiKey {
+  id        Int      @id @default(autoincrement())
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  tenantId  Int
+  key       String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
