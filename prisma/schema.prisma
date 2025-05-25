@@ -14,30 +14,32 @@ datasource db {
 }
 
 model Tenant {
-  id          Int          @id @default(autoincrement())
-  admins      Admin[]
-  ai_contexts AiContext[]
-  apiKeys     apiKey[]
-  name        String
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id              Int               @id @default(autoincrement())
+  admins          Admin[]
+  user            User[]
+  ai_contexts     AiContext[]
+  apiKeys         apiKey[]
+  name            String
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  GoogleAuthToken GoogleAuthToken[]
 }
 
 model Admin {
-  id         Int       @id @default(autoincrement())
-  tenant     Tenant    @relation(fields: [tenantId], references: [id])
+  id         Int      @id @default(autoincrement())
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
   tenantId   Int
-  email      String    @unique
+  email      String   @unique
   password   String?
-  googleId   String?   @unique
-  resetToken String?   @unique
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  googleId   String?  @unique
+  resetToken String?  @unique
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 model AiContext {
-  id            Int           @id @default(autoincrement())
-  tenant        Tenant        @relation(fields: [tenantId], references: [id])
+  id            Int            @id @default(autoincrement())
+  tenant        Tenant         @relation(fields: [tenantId], references: [id])
   tenantId      Int
   conversations Conversation[]
   embeddings    Embedding[]
@@ -45,11 +47,38 @@ model AiContext {
   name          String
   instructions  String?
   temperature   Float
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 }
 
+model GoogleAuthToken {
+  id           Int      @id @default(autoincrement())
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  tenantId     Int
+  userId       String
+  user         User?
+  accessToken  String   @db.Text
+  refreshToken String?  @db.Text
+  expiryDate   BigInt?
+  scope        String?
+  tokenType    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  @@unique([tenantId, userId])
+}
 
+model User {
+  id               Int              @id @default(autoincrement())
+  tenant           Tenant           @relation(fields: [tenantId], references: [id])
+  tenantId         Int
+  googleUserId     String           
+  email            String?
+  name             String?
+  googleAuthToken  GoogleAuthToken  @relation(fields: [tenantId, googleUserId], references: [tenantId, userId])
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  @@unique([tenantId, googleUserId], name: "tenantId_googleUserId")
+}
 
 model Conversation {
   id              Int          @id @default(autoincrement())
@@ -62,10 +91,10 @@ model Conversation {
 }
 
 model Embedding {
-  id           Int        @id @default(autoincrement())
-  aiContext    AiContext  @relation(fields: [aiContextId], references: [id])
-  aiContextId  Int
-  content      String
+  id          Int       @id @default(autoincrement())
+  aiContext   AiContext @relation(fields: [aiContextId], references: [id])
+  aiContextId Int
+  content     String
 }
 
 model Completion {
