@@ -29,7 +29,6 @@ export const createGoogleAuthToken = async (req, res) => {
       tenantId
     });
 
-
     console.log('Tokens recibidos:', tokens);
 
     res.status(201).json({
