@@ -10,9 +10,6 @@ export const createGoogleAuthToken = async (req, res) => {
   if (!code) {
     return res.status(400).send('Error: No se recibió el código de autorización.');
   }
-  console.log('Código de autorización:', code);
-  console.log('TenantId:', tenantId);
-  console.log('Tipo de tenantId:', typeof tenantId);
   try {
     const { tokens } = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
@@ -28,8 +25,6 @@ export const createGoogleAuthToken = async (req, res) => {
       name: profile.name,
       tenantId
     });
-
-    console.log('Tokens recibidos:', tokens);
 
     res.status(201).json({
       user: {

@@ -5,12 +5,15 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "start": "node src/index.js",
-    "dev": "nodemon src/index.js",
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "test": "mocha \"test/**/*.test.js\" --timeout 10000",
-    "generate-key": "node scripts/generate-api-key.js"
+    "generate-key": "node scripts/generate-api-key.js",
+    "db:reset:test": "npx dotenv-cli -e .env.test -- prisma migrate reset --force --skip-seed",
+    "test:run-mocha": "npx dotenv-cli -e .env.test -- mocha 'spec/**/*.spec.js'",
+    "test": "npm run db:reset:test && npm run test:run-mocha",
+    "test:focus": "npm run db:reset:test && npx dotenv-cli -e .env.test -- mocha 'spec/**/*.spec.js' --grep"
   },
   "repository": {
     "type": "git",
@@ -36,9 +39,14 @@
     "winston": "^3.17.0"
   },
   "devDependencies": {
+    "@pollyjs/adapter-node-http": "^6.0.6",
+    "@pollyjs/core": "^6.0.6",
+    "@pollyjs/persister-fs": "^6.0.6",
     "chai": "^5.2.0",
+    "dotenv-cli": "^8.0.0",
     "mocha": "^11.5.0",
     "nodemon": "^3.1.10",
-    "prisma": "^6.7.0"
+    "prisma": "^6.7.0",
+    "supertest": "^7.1.1"
   }
 }
