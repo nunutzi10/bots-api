@@ -5,6 +5,7 @@ jspm_packages/
 
 # Variables de entorno
 .env
+.env.test
 *.env*.local
 
 # Logs

@@ -1,7 +1,5 @@
 import { google } from 'googleapis';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from "../../prisma/setup.js";
 
 export async function loadGoogleCredentials(req, res, next) {
   const email = req.query.email || req.headers['x-email'];
@@ -15,8 +13,6 @@ export async function loadGoogleCredentials(req, res, next) {
     const user = await prisma.user.findFirst({
       where: { email: email },
     });
-
-    console.log('Usuario: ', user)
 
     if (!user) {
       return res.status(401).json({
@@ -54,7 +50,6 @@ export async function loadGoogleCredentials(req, res, next) {
     });
 
     userOAuth2Client.on('tokens', async (newTokens) => {
-      console.log('Tokens refrescados para userId:', userId, newTokens);
       let updateData = {
         accessToken: newTokens.access_token,
         expiryDate: newTokens.expiry_date ? BigInt(newTokens.expiry_date) : null,
@@ -75,7 +70,6 @@ export async function loadGoogleCredentials(req, res, next) {
         },
         data: updateData,
       });
-      console.log('Tokens actualizados en la BD para userId:', userId);
     });
 
     req.googleClient = userOAuth2Client;

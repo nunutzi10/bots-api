@@ -15,7 +15,6 @@ router.get('/google', (req, res) => {
     prompt: 'consent',
     state: tenantId,
   });
-  console.log('URL de autorización:', authorizeUrl);
   res.redirect(authorizeUrl);
 });
 

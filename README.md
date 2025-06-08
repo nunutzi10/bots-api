@@ -73,9 +73,32 @@ Follow these steps to set up your development environment:
     This will typically open Prisma Studio in your web browser.
 
 7.  **Run tests:**
+    First create a .env.test file with the following environment variable:
+    ```bash
+    DATABASE_URL=
+    NODE_ENV=
+    ```
+    Create your database in postgres for testing.
+    ```bash
+    psql -U your_user
+    CREATE DATABASE your_data_base_test;
+    ```
     This command will execute the test suite defined in the project to ensure everything is working as expected.
     ```bash
     npm test
+    ```
+    This command will run only one specific unit test.
+    ```bash
+    npm run test:focus "name it"
+    ```
+8.  **Debugger:**
+    To use pry (debugger), you must first import the following helper:
+    ```bash
+    import { pry } from '../../src/helpers/pry.mjs';
+    ```
+    Once imported you can use it anywhere in your code, just place it as follows:
+    ```bash
+    pry({ context });
     ```
 
 ## Available Scripts
@@ -108,6 +131,12 @@ In the project directory, you can run the following scripts:
 
 * **`npm test`**
     Launches the test runner.
+    ```bash
+    npm test
+    ```
+
+* **`npm run test:focus "name it"`**
+    Starts the test runner for only a specific spect.
     ```bash
     npm test
     ```

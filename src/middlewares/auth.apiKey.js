@@ -1,5 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-const Prisma = new PrismaClient();
+import prisma from "../../prisma/setup.js";
 
 class VeriFyApiKey {
   static async verifyApiKey(req, res, next) {
@@ -7,7 +6,7 @@ class VeriFyApiKey {
     if (!apiKey) {
       return res.status(401).json({ message: "API key is required." });
     }
-    const apiKeyRecord = await Prisma.apiKey.findUnique({
+    const apiKeyRecord = await prisma.apiKey.findUnique({
       where: { key: apiKey },
     });
     if (!apiKeyRecord) {
